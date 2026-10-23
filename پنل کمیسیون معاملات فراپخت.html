@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>پنل کمیسیون معاملات فراپخت</title>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f4f5f7;--card:#fff;--tx:#1b2430;--mut:#667085;--pr:#b4430f;--prt:#fff;--bd:#e3e6ea;--ok:#157347;--er:#c0392b;--wa:#9a6700;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14181d;--card:#1e242b;--tx:#e8ebef;--mut:#9aa4b0;--pr:#e8743b;--prt:#14181d;--bd:#343c46;--ok:#4cc38a;--er:#ff7b6b;--wa:#e0b341;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#14181d;--card:#1e242b;--tx:#e8ebef;--mut:#9aa4b0;--pr:#e8743b;--prt:#14181d;--bd:#343c46;--ok:#4cc38a;--er:#ff7b6b;--wa:#e0b341;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.7 Vazirmatn,Tahoma,sans-serif}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:20px;margin-bottom:16px}
+.lg{min-height:100vh;display:grid;place-items:center;padding:16px}.lg .card{width:100%;max-width:420px}
+h1{font-size:20px;margin:0 0 16px;line-height:1.6}h2{font-size:17px;margin:0 0 12px}
+label{display:block;margin-bottom:12px;font-size:13px;color:var(--mut)}
+input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);font:inherit;margin-top:4px}
+button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--bd);background:var(--card);color:var(--tx);padding:8px 14px}
+.b{background:var(--pr);color:var(--prt);border-color:var(--pr);font-weight:600}.w{width:100%}
+header{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 20px;background:var(--card);border-bottom:1px solid var(--bd)}
+nav{display:flex;gap:6px;flex-wrap:wrap;padding:12px 20px 0;max-width:1100px;margin:auto}
+nav button.on{background:var(--pr);color:var(--prt);border-color:var(--pr)}
+main{padding:16px 20px;max-width:1100px;margin:auto}
+.tw{overflow-x:auto}table{width:100%;border-collapse:collapse}
+th,td{padding:8px;border-bottom:1px solid var(--bd);text-align:right;vertical-align:top}
+th{font-size:13px;color:var(--mut);font-weight:600}td input{margin:0;min-width:110px}
+.lk{cursor:pointer}.lk:hover{background:var(--bg)}
+.tag{padding:2px 10px;border-radius:99px;font-size:12px;border:1px solid currentColor;white-space:nowrap}
+.ok{color:var(--ok)}.er{color:var(--er)}.wa{color:var(--wa)}.mut{color:var(--mut);font-size:13px}
+.cp{display:flex;gap:8px;align-items:center;margin-bottom:12px}.cp input{margin:0}canvas{border-radius:8px;border:1px solid var(--bd);flex:none}
+.dd{border:1px solid var(--bd);border-radius:8px;padding:8px 10px;margin:4px 0 12px}.dd summary{cursor:pointer;color:var(--tx)}
+.dd label{display:flex;gap:8px;align-items:center;margin:6px 0;color:var(--tx);font-size:14px}.dd input{width:auto;margin:0}
+.row{display:flex;gap:12px;flex-wrap:wrap}.row>*{flex:1;min-width:150px}
+#toast{position:fixed;bottom:calc(16px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);max-width:92vw;padding:10px 18px;border-radius:10px;background:var(--tx);color:var(--bg);display:none;z-index:9;text-align:center}
+#toast.show{display:block}#toast.er{background:var(--er);color:#fff}#toast.ok{background:var(--ok);color:#fff}#toast.sms{background:var(--wa);color:#fff}
+dialog{border:1px solid var(--bd);border-radius:12px;background:var(--card);color:var(--tx);font:inherit;max-width:90vw}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast"></div>
+<dialog id="dlg"><form method="dialog"><p></p><div class="row"><button class="b" value="y">تایید</button><button value="n">انصراف</button></div></form></dialog>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fa=n=>Number(n).toLocaleString('fa-IR');
+const nd=s=>s.replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d));
+const pd=d=>d?new Intl.DateTimeFormat('fa-IR',{dateStyle:'medium'}).format(typeof d==='number'?new Date(d):new Date(d+'T12:00:00')):'—';
+const ymd=d=>new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10);
+const PW=/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])[A-Za-z\d]{8}$/;
+const gp=()=>{const p=a=>a[Math.random()*a.length|0];const s=[p('ABCDEFGHJKLMNPQRSTUVWXYZ'),p('abcdefghijkmnpqrstuvwxyz'),p('23456789')];while(s.length<8)s.push(p('ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789'));return s.sort(()=>Math.random()-.5).join('')};
+
+function seed(){const d=n=>ymd(new Date(Date.now()+n*864e5));
+return{users:[
+{id:'a1',name:'مدیر سیستم',mobile:'09120000000',pass:'Admin123',role:'admin'},
+{id:'s1',name:'شرکت آرمان غذا',mobile:'09121111111',pass:'Sup12345',role:'sup'},
+{id:'s2',name:'بازرگانی پارس',mobile:'09122222222',pass:'Sup12345',role:'sup'},
+{id:'s3',name:'تجارت نیکان',mobile:'09123333333',pass:'Sup12345',role:'sup'}],
+inq:[{id:'q1',title:'استعلام نمونه: برنج و روغن',start:d(-1),end:d(5),note:'قیمت‌ها نقدی و تحویل درب کارخانه باشد.',
+items:[{t:'برنج طارم',spec:'درجه یک، طول دانه ۷ میلی‌متر',qty:30000,unit:'کیلوگرم'},{t:'روغن مایع',spec:'آفتابگردان، بسته ۱۸ لیتری',qty:2000,unit:'حلب'}],
+sent:['s1','s2'],resp:{},results:{}}]}}
+let db=null;try{db=JSON.parse(localStorage.getItem('frp')||'null')}catch(e){}
+if(!db)db=seed();
+const save=()=>{try{localStorage.setItem('frp',JSON.stringify(db))}catch(e){}};
+
+let me=null,view='',cur=null,cap='',otp='',pend=null,tt;
+const U=()=>db.users.find(u=>u.id===me);
+const state=q=>(q.closed||ymd(new Date())>q.end)?'ended':ymd(new Date())<q.start?'pending':'open';
+const SL={open:'در حال برگزاری',pending:'شروع نشده',ended:'پایان‌یافته'};
+const stl=(q,uid)=>q.resp[uid]?(q.results[uid]?['برنده شدید','ok']:['ارسال‌شده','ok']):({open:['در انتظار تکمیل','wa'],pending:['شروع نشده','wa'],ended:['منقضی','er']})[state(q)];
+
+function toast(m,k='',ms=4500){const t=$('#toast');t.textContent=m;t.className='show '+k;clearTimeout(tt);tt=setTimeout(()=>t.className='',ms)}
+function ask(m){return new Promise(r=>{const d=$('#dlg');d.querySelector('p').textContent=m;d.returnValue='';d.onclose=()=>r(d.returnValue==='y');d.showModal()})}
+
+/* ---------- Login ---------- */
+function loginV(){me=null;$('#app').innerHTML=`<div class="lg"><div class="card"><h1>به پنل کمیسیون معاملات شرکت فراپخت خوش آمدید</h1><div id="ls"></div></div></div>`;step1()}
+function step1(){$('#ls').innerHTML=`
+<label>نام کاربری (شماره موبایل)<input id="mo" inputmode="numeric" maxlength="11" autocomplete="username" dir="ltr" placeholder="09123456789"></label>
+<label>رمز عبور (۸ کاراکتر: عدد، حرف بزرگ و کوچک)<input id="pw" type="password" maxlength="8" autocomplete="current-password" dir="ltr"></label>
+<div class="cp"><canvas id="cv" width="120" height="40"></canvas><button type="button" onclick="drawCap()" title="تصویر جدید">↻</button><input id="cc" placeholder="کد تصویر" dir="ltr" maxlength="5" autocomplete="off"></div>
+<button class="b w" onclick="doLogin()">ورود</button>
+<p class="mut">حساب‌های آزمایشی — مدیر: 09120000000 / Admin123 — تامین‌کننده: 09121111111 / Sup12345</p>`;drawCap()}
+function drawCap(){cap=Array.from({length:5},()=>'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.random()*32|0]).join('');
+const x=$('#cv').getContext('2d');x.fillStyle='#eef1f4';x.fillRect(0,0,120,40);
+for(let i=0;i<6;i++){x.strokeStyle='#8893a0';x.beginPath();x.moveTo(Math.random()*120,Math.random()*40);x.lineTo(Math.random()*120,Math.random()*40);x.stroke()}
+x.font='bold 24px monospace';x.fillStyle='#1b2430';[...cap].forEach((c,i)=>{x.save();x.translate(10+i*21,28);x.rotate((Math.random()-.5)*.5);x.fillText(c,0,0);x.restore()})}
+function doLogin(){const m=nd($('#mo').value.trim()),p=$('#pw').value;
+if(!/^09\d{9}$/.test(m))return toast('شماره موبایل معتبر نیست (مثال: 09123456789)','er');
+if(!PW.test(p))return toast('رمز عبور باید ۸ کاراکتر شامل عدد، حرف بزرگ و کوچک انگلیسی باشد','er');
+if($('#cc').value.trim().toUpperCase()!==cap){drawCap();return toast('کد تصویر اشتباه است','er')}
+const u=db.users.find(x=>x.mobile===m&&x.pass===p);
+if(!u){drawCap();return toast('نام کاربری یا رمز عبور اشتباه است','er')}
+pend=u;sendOtp();step2()}
+function sendOtp(){otp=String(10000+Math.random()*90000|0);toast('پیامک شبیه‌سازی‌شده — کد ورود دو مرحله‌ای: '+otp,'sms',20000)}
+function step2(){$('#ls').innerHTML=`<p>کد ۵ رقمی ارسال‌شده به شماره ${esc(pend.mobile)} را وارد کنید.</p>
+<label>کد پیامکی<input id="ot" inputmode="numeric" maxlength="5" dir="ltr" autocomplete="one-time-code"></label>
+<button class="b w" onclick="verOtp()">تایید و ورود</button>
+<p><button onclick="sendOtp()">ارسال مجدد کد</button> <button onclick="step1()">بازگشت</button></p>`}
+function verOtp(){if(nd($('#ot').value.trim())!==otp)return toast('کد وارد‌شده صحیح نیست','er');
+me=pend.id;toast('پیامک شبیه‌سازی‌شده — تاییدیه ورود: ورود شما ثبت شد. کد پیگیری '+(100000+Math.random()*900000|0),'sms',12000);
+go(U().role==='admin'?'new':'box')}
+
+/* ---------- Shell ---------- */
+function go(v,id){view=v;cur=id||null;if(!me)return loginV();shell();({new:newV,send:sendV,sup:supV,rep:repV,res:resV,box:boxV,form:formV})[v]()}
+function shell(){const u=U(),adm=u.role==='admin';
+const tabs=adm?[['new','استعلام جدید'],['send','ارسال به تامین‌کنندگان'],['sup','تامین‌کنندگان'],['rep','گزارش‌گیری'],['res','نتیجه کمیسیون']]:[['box','کارتابل']];
+$('#app').innerHTML=`<header><b>پنل کمیسیون معاملات فراپخت</b><span>${esc(u.name)} (${adm?'ادمین':'تامین‌کننده'}) <button onclick="loginV()">خروج</button></span></header>
+<nav>${tabs.map(t=>`<button class="${(view===t[0]||(view==='form'&&t[0]==='box'))?'on':''}" onclick="go('${t[0]}')">${t[1]}</button>`).join('')}</nav><main id="main"></main>`}
+
+/* ---------- Admin: new inquiry ---------- */
+const rowH=()=>`<tr><td><input class="t" placeholder="عنوان کالا"></td><td><input class="s" placeholder="مشخصات فنی"></td><td><input class="q" type="number" min="1" dir="ltr"></td><td><input class="u" value="کیلوگرم"></td><td><button onclick="this.closest('tr').remove()" title="حذف">✕</button></td></tr>`;
+function newV(){$('#main').innerHTML=`<div class="card"><h2>تعریف استعلام و فرم پیشنهاد قیمت</h2>
+<label>عنوان فرم<input id="ti"></label>
+<div class="row"><label>شروع بازه استعلام<input id="st" type="date" value="${ymd(new Date())}" onchange="dp()"><span class="mut" id="sp"></span></label>
+<label>پایان بازه (تاریخ اعتبار فرم)<input id="en" type="date" onchange="dp()"><span class="mut" id="ep"></span></label></div>
+<div class="tw"><table><thead><tr><th>عنوان کالا</th><th>مشخصات فنی</th><th>حجم خرید</th><th>واحد</th><th></th></tr></thead><tbody id="rows">${rowH()}</tbody></table></div>
+<p><button onclick="$('#rows').insertAdjacentHTML('beforeend',rowH())">+ افزودن ردیف</button></p>
+<label>توضیحات تکمیلی<textarea id="nt" rows="3"></textarea></label>
+<button class="b" onclick="saveInq()">تکمیل و تایید فرم</button></div>`;dp()}
+function dp(){$('#sp').textContent=pd($('#st').value);$('#ep').textContent=pd($('#en').value)}
+function saveInq(){const q={id:'q'+Date.now(),title:$('#ti').value.trim(),start:$('#st').value,end:$('#en').value,note:$('#nt').value.trim(),
+items:[...document.querySelectorAll('#rows tr')].map(r=>({t:r.querySelector('.t').value.trim(),spec:r.querySelector('.s').value.trim(),qty:+r.querySelector('.q').value,unit:r.querySelector('.u').value.trim()})),sent:[],resp:{},results:{}};
+if(!q.title||!q.start||!q.end||q.end<q.start)return toast('عنوان و بازه زمانی معتبر را وارد کنید','er');
+if(!q.items.length||q.items.some(i=>!i.t||!(i.qty>0)))return toast('عنوان و حجم همه ردیف‌ها باید تکمیل شود','er');
+ask('پس از تایید، فرم نهایی می‌شود و برای ارسال آماده است. تایید می‌کنید؟').then(ok=>{if(!ok)return;db.inq.push(q);save();toast('فرم تایید شد؛ اکنون می‌توانید آن را ارسال کنید','ok');go('send',q.id)})}
+
+/* ---------- Admin: send ---------- */
+function sendV(){const sp=db.users.filter(u=>u.role==='sup');if(!db.inq.length){$('#main').innerHTML='<div class="card"><p>ابتدا یک فرم استعلام تعریف و تایید کنید.</p></div>';return}
+if(!cur)cur=db.inq[db.inq.length-1].id;const q=db.inq.find(x=>x.id===cur);
+$('#main').innerHTML=`<div class="card"><h2>ارسال فرم به تامین‌کنندگان</h2>
+<label>انتخاب فرم تاییدشده<select onchange="cur=this.value;sendV()">${db.inq.map(x=>`<option value="${x.id}" ${x.id===cur?'selected':''}>${esc(x.title)}</option>`).join('')}</select></label>
+<p class="mut">بازه: ${pd(q.start)} تا ${pd(q.end)} — ${fa(q.items.length)} ردیف کالا</p>
+<details class="dd" id="dd"><summary id="sm">انتخاب تامین‌کنندگان (۰)</summary>
+<label><input type="checkbox" onchange="document.querySelectorAll('.sc').forEach(c=>c.checked=this.checked);cnt()"> انتخاب همه</label>
+${sp.map(u=>`<label><input type="checkbox" class="sc" value="${u.id}" onchange="cnt()" ${q.sent.includes(u.id)?'checked':''}> ${esc(u.name)} <span class="mut">${esc(u.mobile)}</span> ${q.sent.includes(u.id)?'<span class="tag ok">ارسال‌شده</span>':''}</label>`).join('')||'<p class="mut">ابتدا لیست تامین‌کنندگان را بارگذاری کنید.</p>'}</details>
+<button class="b" onclick="doSend()">ارسال</button></div>`;cnt()}
+function cnt(){$('#sm').textContent='انتخاب تامین‌کنندگان ('+fa(document.querySelectorAll('.sc:checked').length)+')'}
+function doSend(){const q=db.inq.find(x=>x.id===cur),ids=[...document.querySelectorAll('.sc:checked')].map(c=>c.value);
+if(!ids.length)return toast('حداقل یک تامین‌کننده انتخاب کنید','er');
+q.sent=[...new Set([...q.sent,...ids])];save();toast('فرم برای '+fa(ids.length)+' تامین‌کننده ارسال شد و در کارتابل آن‌ها قرار گرفت','ok');sendV()}
+
+/* ---------- Admin: suppliers ---------- */
+function supV(){const sp=db.users.filter(u=>u.role==='sup');
+$('#main').innerHTML=`<div class="card"><h2>لیست تامین‌کنندگان</h2>
+<label>بارگذاری فایل CSV (ستون‌ها: نام، موبایل، رمز — رمز اختیاری است)<input type="file" accept=".csv,.txt" onchange="upl(this)"></label>
+<div class="row"><label>نام<input id="an"></label><label>موبایل<input id="am" dir="ltr" maxlength="11"></label><label>رمز (خالی = تولید خودکار)<input id="ap" dir="ltr" maxlength="8"></label></div>
+<button onclick="addS()">+ افزودن تامین‌کننده</button></div>
+<div class="card tw"><table><tr><th>نام</th><th>موبایل</th><th>رمز اولیه (نمایشی)</th></tr>${sp.map(u=>`<tr><td>${esc(u.name)}</td><td dir="ltr" style="text-align:right">${esc(u.mobile)}</td><td dir="ltr" style="text-align:right">${esc(u.pass)}</td></tr>`).join('')}</table></div>`}
+function addU(n,m,p){m=nd(m.trim());p=(p||'').trim()||gp();if(!n||!/^09\d{9}$/.test(m)||!PW.test(p)||db.users.some(u=>u.mobile===m))return false;db.users.push({id:'s'+Date.now()+Math.random().toString(36).slice(2,5),name:n.trim(),mobile:m,pass:p,role:'sup'});return true}
+function addS(){if(addU($('#an').value,$('#am').value,$('#ap').value)){save();toast('تامین‌کننده افزوده شد','ok');supV()}else toast('نام، موبایل یکتا و رمز ۸ کاراکتری معتبر لازم است','er')}
+async function upl(f){if(!f.files[0])return;const t=await f.files[0].text();let ok=0,bad=0;
+t.replace(/^\uFEFF/,'').split(/\r?\n/).filter(l=>l.trim()).forEach(l=>{const c=l.split(/[,;\t،]/);if(!/^09\d{9}$/.test(nd((c[1]||'').trim())))return;addU(c[0],c[1],c[2])?ok++:bad++});
+save();toast(fa(ok)+' تامین‌کننده بارگذاری شد'+(bad?' و '+fa(bad)+' ردیف نامعتبر/تکراری رد شد':''),ok?'ok':'er');supV()}
+
+/* ---------- Admin: reports ---------- */
+function repV(){$('#main').innerHTML=`<div class="card"><h2>گزارش‌گیری از استعلام‌ها</h2>${db.inq.length?`<div class="tw"><table><tr><th>عنوان</th><th>بازه</th><th>وضعیت</th><th>ارسال/تکمیل</th><th></th></tr>${db.inq.map(q=>{const s=state(q);return`<tr><td>${esc(q.title)}</td><td>${pd(q.start)} تا ${pd(q.end)}</td><td>${SL[s]}</td><td>${fa(q.sent.length)} / ${fa(Object.keys(q.resp).length)}</td><td>${s==='ended'?`<button class="b" onclick="xl('${q.id}')">دریافت اکسل</button>`:`<button onclick="closeQ('${q.id}')">پایان دوره</button>`}</td></tr>`}).join('')}</table></div>
+<p class="mut">خروجی اکسل فقط پس از پایان بازه زمانی استعلام قابل دریافت است. دکمه «پایان دوره» برای آزمایش و بستن زودهنگام استعلام است.</p>`:'<p>استعلامی ثبت نشده است.</p>'}</div>`}
+function closeQ(id){ask('استعلام بسته می‌شود و تامین‌کنندگان دیگر نمی‌توانند فرم را تکمیل کنند. ادامه می‌دهید؟').then(ok=>{if(!ok)return;db.inq.find(q=>q.id===id).closed=true;save();repV()})}
+function xl(id){const q=db.inq.find(x=>x.id===id);if(!q||state(q)!=='ended')return toast('گزارش پس از پایان بازه قابل دریافت است','er');
+const rows=[];Object.entries(q.resp).forEach(([uid,r])=>{const u=db.users.find(x=>x.id===uid)||{name:'—',mobile:''};
+q.items.forEach((it,i)=>rows.push({'تامین‌کننده':u.name,'موبایل':u.mobile,'ردیف':i+1,'کالا':it.t,'مشخصات فنی':it.spec,'حجم خرید':it.qty+' '+it.unit,'قیمت پیشنهادی':r.prices[i],'توضیحات ردیف':r.notes[i]||'','توضیحات تکمیلی':r.desc||'','تاریخ ثبت':pd(r.at)}))});
+if(!rows.length)return toast('هنوز هیچ فرم تکمیل‌شده‌ای وجود ندارد','er');
+if(window.XLSX){const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),'پاسخ ها');wb.Workbook={Views:[{RTL:true}]};XLSX.writeFile(wb,'quotes-'+q.id+'.xlsx')}
+else{const h=Object.keys(rows[0]),c='\uFEFF'+[h,...rows.map(r=>h.map(k=>'"'+String(r[k]).replace(/"/g,'""')+'"'))].map(r=>r.join(',')).join('\n');
+const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([c],{type:'text/csv'}));a.download='quotes-'+q.id+'.csv';a.click()}}
+
+/* ---------- Admin: commission result ---------- */
+function resV(){const es=db.inq.filter(q=>state(q)==='ended');if(!cur||!es.find(q=>q.id===cur))cur=es[0]&&es[0].id;const q=es.find(x=>x.id===cur);
+$('#main').innerHTML=`<div class="card"><h2>ثبت نتیجه جلسه کمیسیون معاملات</h2>${q?`<label>استعلام<select onchange="cur=this.value;resV()">${es.map(x=>`<option value="${x.id}" ${x.id===cur?'selected':''}>${esc(x.title)}</option>`).join('')}</select></label>
+${Object.entries(q.resp).map(([uid,r])=>{const u=db.users.find(x=>x.id===uid),tot=q.items.reduce((s,it,i)=>s+it.qty*r.prices[i],0);
+return`<div class="card wr" data-u="${uid}"><label style="display:flex;gap:8px;align-items:center;color:var(--tx);margin:0 0 8px"><input type="checkbox" class="wc" style="width:auto;margin:0" ${q.results[uid]?'checked':''}> <b>${esc(u.name)}</b> <span class="mut">جمع پیشنهادی: ${fa(tot)}</span></label><textarea class="wt" rows="2" placeholder="نتیجه، قیمت و حجم نهایی، شرایط تحویل...">${esc(q.results[uid]||'')}</textarea></div>`}).join('')||'<p class="mut">هیچ تامین‌کننده‌ای فرم را تکمیل نکرده است.</p>'}
+<button class="b" onclick="saveRes()">ذخیره و انتشار در کارتابل برندگان</button>`:'<p>هنوز استعلامی به پایان نرسیده است.</p>'}</div>`}
+function saveRes(){const q=db.inq.find(x=>x.id===cur);document.querySelectorAll('.wr').forEach(w=>{const uid=w.dataset.u;
+if(w.querySelector('.wc').checked)q.results[uid]=w.querySelector('.wt').value.trim()||'شما به عنوان برنده انتخاب شدید.';else delete q.results[uid]});
+save();toast('نتیجه در کارتابل تامین‌کنندگان برنده ثبت شد','ok')}
+
+/* ---------- Supplier ---------- */
+function boxV(){const u=U(),ts=db.inq.filter(q=>q.sent.includes(u.id));
+$('#main').innerHTML=`<div class="card"><h2>کارتابل من</h2>${ts.length?`<div class="tw"><table><tr><th>عنوان</th><th>تاریخ اعتبار</th><th>وضعیت</th></tr>${ts.map(q=>{const s=stl(q,u.id);return`<tr class="lk" onclick="go('form','${q.id}')"><td>${esc(q.title)}</td><td>${pd(q.start)} تا ${pd(q.end)}</td><td><span class="tag ${s[1]}">${s[0]}</span></td></tr>`}).join('')}</table></div>`:'<p>در حال حاضر فرمی برای شما ارسال نشده است.</p>'}</div>`}
+function formV(){const q=db.inq.find(x=>x.id===cur),u=U(),r=q.resp[u.id],st=state(q),ro=r||st!=='open';
+$('#main').innerHTML=`<div class="card"><button onclick="go('box')">← بازگشت به کارتابل</button><h2 style="margin-top:12px">${esc(q.title)}</h2>
+<p>اعتبار فرم: ${pd(q.start)} تا ${pd(q.end)}${q.note?'<br><span class="mut">'+esc(q.note)+'</span>':''}</p>
+${r?'<p class="ok">✔ فرم شما ارسال شد و دیگر قابل ویرایش نیست.</p>':st==='ended'?'<p class="er">مهلت تکمیل این فرم پایان یافته است.</p>':st==='pending'?'<p class="wa">بازه این استعلام هنوز آغاز نشده است.</p>':''}
+${q.results[u.id]?`<div class="card" style="border-color:var(--ok)"><b class="ok">نتیجه جلسه کمیسیون معاملات</b><p>${esc(q.results[u.id])}</p></div>`:''}
+<div class="tw"><table><tr><th>#</th><th>کالا</th><th>مشخصات فنی</th><th>حجم خرید</th><th>قیمت پیشنهادی</th><th>توضیحات</th></tr>${q.items.map((it,i)=>`<tr><td>${fa(i+1)}</td><td>${esc(it.t)}</td><td>${esc(it.spec)}</td><td>${fa(it.qty)} ${esc(it.unit)}</td><td>${r?fa(r.prices[i]):ro?'—':`<input id="p${i}" type="number" min="1" dir="ltr">`}</td><td>${r?esc(r.notes[i]||'—'):ro?'—':`<input id="n${i}">`}</td></tr>`).join('')}</table></div>
+${r?`<p><b>توضیحات تکمیلی:</b> ${esc(r.desc||'—')}</p>`:ro?'':'<label>توضیحات تکمیلی<textarea id="ds" rows="3"></textarea></label>'}
+${ro?'':'<button class="b" onclick="subF()">تایید و ارسال فرم</button>'}</div>`}
+function subF(){const q=db.inq.find(x=>x.id===cur),u=U();
+const prices=q.items.map((_,i)=>+nd($('#p'+i).value||'0')),notes=q.items.map((_,i)=>$('#n'+i).value.trim());
+if(prices.some(p=>!(p>0)))return toast('قیمت پیشنهادی همه ردیف‌ها را وارد کنید','er');
+ask('پس از تایید، فرم ارسال می‌شود و دیگر قابل ویرایش نخواهد بود. ادامه می‌دهید؟').then(ok=>{if(!ok||state(q)!=='open')return;
+q.resp[u.id]={prices,notes,desc:$('#ds').value.trim(),at:Date.now()};save();toast('فرم پیشنهاد قیمت شما با موفقیت تایید و ارسال شد','ok');formV()})}
+
+loginV();
+</script>
+</body>
+</html>
